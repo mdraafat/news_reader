@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'articles/data/article_local_datasource_impl.dart';
 import 'articles/data/article_remote_datasource_impl.dart';
 import 'articles/data/article_repository_impl.dart';
+import 'articles/data/connectivity_service.dart';
 import 'articles/domain/article_local_datasource.dart';
 import 'articles/domain/article_remote_datasource.dart';
 import 'articles/domain/article_repository.dart';
@@ -28,6 +29,9 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiRepositoryProvider(
       providers: [
+        RepositoryProvider<ConnectivityService>(
+          create: (context) => ConnectivityService(),
+        ),
         RepositoryProvider<http.Client>(
           create: (context) => http.Client(),
         ),

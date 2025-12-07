@@ -8,8 +8,10 @@ class ArticleBloc extends Bloc<ArticleEvent, ArticleState> {
 
   ArticleBloc({required this.repository}) : super(ArticleInitial()) {
     on<LoadTopHeadlines>(_onLoadTopHeadlines);
+    on<LoadMoreHeadlines>(_onLoadMoreHeadlines);
     on<SearchArticles>(_onSearchArticles);
     on<LoadBookmarkedArticles>(_onLoadBookmarkedArticles);
+    on<LoadMoreArticles>(_onLoadMoreArticles);
     on<BookmarkArticle>(_onBookmarkArticle);
     on<RemoveBookmark>(_onRemoveBookmark);
     on<CheckBookmarkStatus>(_onCheckBookmarkStatus);
@@ -30,16 +32,74 @@ class ArticleBloc extends Bloc<ArticleEvent, ArticleState> {
     }
   }
 
+  Future<void> _onLoadMoreHeadlines(
+      LoadMoreHeadlines event,
+      Emitter<ArticleState> emit,
+      ) async {
+    if (state is ArticleLoaded) {
+      final currentState = state as ArticleLoaded;
+      if (currentState.hasReachedMax) return;
+
+      try {
+        final newArticles = await repository.getTopHeadlines(
+          countryCode: event.countryCode,
+          page: event.page,
+        );
+
+        if (newArticles.isEmpty) {
+          emit(currentState.copyWith(hasReachedMax: true));
+        } else {
+          emit(currentState.copyWith(
+            articles: List.of(currentState.articles)..addAll(newArticles),
+            hasReachedMax: false,
+            currentPage: event.page,
+          ));
+        }
+      } catch (e) {
+        emit(ArticleError(message: e.toString()));
+      }
+    }
+  }
+
   Future<void> _onSearchArticles(
       SearchArticles event,
       Emitter<ArticleState> emit,
       ) async {
     emit(ArticleLoading());
     try {
-      final articles = await repository.searchArticles(event.query);
-      emit(ArticleLoaded(articles: articles));
+      final articles = await repository.searchArticles(event.query, page: 1);
+      emit(ArticleLoaded(articles: articles, currentPage: 1));
     } catch (e) {
       emit(ArticleError(message: e.toString()));
+    }
+  }
+
+  Future<void> _onLoadMoreArticles(
+      LoadMoreArticles event,
+      Emitter<ArticleState> emit,
+      ) async {
+    if (state is ArticleLoaded) {
+      final currentState = state as ArticleLoaded;
+      if (currentState.hasReachedMax) return;
+
+      try {
+        final newArticles = await repository.searchArticles(
+          event.query,
+          page: event.page,
+        );
+
+        if (newArticles.isEmpty) {
+          emit(currentState.copyWith(hasReachedMax: true));
+        } else {
+          emit(currentState.copyWith(
+            articles: List.of(currentState.articles)..addAll(newArticles),
+            hasReachedMax: false,
+            currentPage: event.page,
+          ));
+        }
+      } catch (e) {
+        emit(currentState.copyWith(hasReachedMax: true));
+      }
     }
   }
 

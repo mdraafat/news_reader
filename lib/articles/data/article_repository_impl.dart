@@ -13,13 +13,30 @@ class ArticleRepositoryImpl implements ArticleRepository {
   });
 
   @override
-  Future<List<Article>> getTopHeadlines({String countryCode = 'us'}) async {
-    return await remoteDatasource.getTopHeadlines(countryCode: countryCode);
+  Future<List<Article>> getTopHeadlines({String countryCode = 'us', int page = 1}) async {
+    try {
+      final articles = await remoteDatasource.getTopHeadlines(
+        countryCode: countryCode,
+        page: page,
+      );
+      if (page == 1) {
+        await localDatasource.cacheArticles(articles);
+      }
+      return articles;
+    } catch (e) {
+      if (page == 1) {
+        final cachedArticles = await localDatasource.getCachedArticles();
+        if (cachedArticles.isNotEmpty) {
+          return cachedArticles;
+        }
+      }
+      rethrow;
+    }
   }
 
   @override
-  Future<List<Article>> searchArticles(String query) async {
-    return await remoteDatasource.searchArticles(query);
+  Future<List<Article>> searchArticles(String query, {int page = 1}) async {
+    return await remoteDatasource.searchArticles(query, page: page);
   }
 
   @override

@@ -17,6 +17,16 @@ class LoadTopHeadlines extends ArticleEvent {
   List<Object?> get props => [countryCode];
 }
 
+class LoadMoreHeadlines extends ArticleEvent {
+  final String countryCode;
+  final int page;
+
+  const LoadMoreHeadlines({required this.countryCode, required this.page});
+
+  @override
+  List<Object?> get props => [countryCode, page];
+}
+
 class SearchArticles extends ArticleEvent {
   final String query;
 
@@ -55,4 +65,14 @@ class CheckBookmarkStatus extends ArticleEvent {
 
   @override
   List<Object?> get props => [article];
+}
+
+class LoadMoreArticles extends ArticleEvent {
+  final String query;
+  final int page;
+
+  const LoadMoreArticles({required this.query, required this.page});
+
+  @override
+  List<Object?> get props => [query, page];
 }

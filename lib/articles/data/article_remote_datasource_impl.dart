@@ -12,10 +12,11 @@ class ArticleRemoteDatasourceImpl implements ArticleRemoteDatasource {
   @override
   Future<List<ArticleModel>> getTopHeadlines({
     String countryCode = 'us',
+    int page = 1,
   }) async {
     final response = await client.get(
       Uri.parse(
-        'https://newsapi.org/v2/top-headlines?country=$countryCode&apiKey=$apiKey',
+        'https://newsapi.org/v2/top-headlines?country=$countryCode&page=$page&pageSize=20&apiKey=$apiKey',
       ),
     );
 
@@ -37,9 +38,9 @@ class ArticleRemoteDatasourceImpl implements ArticleRemoteDatasource {
   }
 
   @override
-  Future<List<ArticleModel>> searchArticles(String query) async {
+  Future<List<ArticleModel>> searchArticles(String query, {int page = 1}) async {
     final response = await client.get(
-      Uri.parse('https://newsapi.org/v2/everything?q=$query&apiKey=$apiKey'),
+      Uri.parse('https://newsapi.org/v2/everything?q=$query&page=$page&pageSize=20&apiKey=$apiKey'),
     );
 
     if (response.statusCode == 200) {
