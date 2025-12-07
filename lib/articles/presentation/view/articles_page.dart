@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../data/connectivity_service.dart';
 import '../../domain/article.dart';
 import '../bloc/article_bloc.dart';
@@ -89,13 +90,15 @@ class _ArticlesPageState extends State<ArticlesPage> {
       return;
     }
 
-    setState(() {
-      _isSearchMode = false;
-      _currentSearchQuery = '';
-    });
-    context.read<ArticleBloc>().add(
-      LoadTopHeadlines(countryCode: _currentCountryCode),
-    );
+    if (_isSearchMode && _currentSearchQuery.isNotEmpty) {
+      context.read<ArticleBloc>().add(
+        SearchArticles(query: _currentSearchQuery),
+      );
+    } else {
+      context.read<ArticleBloc>().add(
+        LoadTopHeadlines(countryCode: _currentCountryCode),
+      );
+    }
 
     await Future.delayed(Duration(seconds: 1));
   }
