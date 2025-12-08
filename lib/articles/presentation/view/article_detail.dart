@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+
 import '../../domain/article.dart';
 import '../bloc/article_bloc.dart';
 import '../bloc/article_event.dart';
@@ -17,31 +18,9 @@ class ArticleDetails extends StatefulWidget {
 }
 
 class _ArticleDetailsState extends State<ArticleDetails> {
-  bool _isBookmarked = false;
-
   @override
   void initState() {
     super.initState();
-    _checkBookmarkStatus();
-  }
-
-  void _checkBookmarkStatus() async {
-    // Check bookmark status directly from repository without emitting state
-    final repository = context.read<ArticleBloc>().repository;
-    final isBookmarked = await repository.isBookmarked(widget.article);
-    if (mounted) {
-      setState(() {
-        _isBookmarked = isBookmarked;
-      });
-    }
-  }
-
-  void _toggleBookmark() {
-    if (_isBookmarked) {
-      context.read<ArticleBloc>().add(RemoveBookmark(article: widget.article));
-    } else {
-      context.read<ArticleBloc>().add(BookmarkArticle(article: widget.article));
-    }
   }
 
   @override
@@ -49,15 +28,52 @@ class _ArticleDetailsState extends State<ArticleDetails> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Article Details'),
+
         actions: [
+          BlocBuilder<ArticleBloc, ArticleState>(
+            buildWhen: (previous, current) {
+              final prevBookmarked = previous is ArticleLoaded
+                  ? previous.isBookmarked
+                  : (previous is BookmarkToggled
+                        ? previous.isBookmarked
+                        : false);
+
+              final currBookmarked = current is ArticleLoaded
+                  ? current.isBookmarked
+                  : (current is BookmarkToggled ? current.isBookmarked : false);
+
+              return prevBookmarked != currBookmarked;
+            },
+            builder: (context, state) {
+              final isBookmarked = state is ArticleLoaded
+                  ? state.isBookmarked
+                  : (state is BookmarkToggled ? state.isBookmarked : false);
+
+              return IconButton(
+                icon: Icon(
+                  isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                ),
+                onPressed: () {
+                  if (isBookmarked) {
+                    context.read<ArticleBloc>().add(
+                      RemoveBookmark(article: widget.article),
+                    );
+                  } else {
+                    context.read<ArticleBloc>().add(
+                      BookmarkArticle(article: widget.article),
+                    );
+                  }
+                },
+              );
+            },
+          ),
+
           BlocListener<ArticleBloc, ArticleState>(
+            listenWhen: (previous, current) {
+              return current is ArticleLoaded || current is BookmarkToggled;
+            },
             listener: (context, state) {
               if (state is ArticleLoaded) {
-                // Update bookmark status from the loaded state
-                setState(() {
-                  _isBookmarked = state.isBookmarked;
-                });
-                // Show snackbar message
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -69,9 +85,6 @@ class _ArticleDetailsState extends State<ArticleDetails> {
                   ),
                 );
               } else if (state is BookmarkToggled) {
-                setState(() {
-                  _isBookmarked = state.isBookmarked;
-                });
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -84,12 +97,7 @@ class _ArticleDetailsState extends State<ArticleDetails> {
                 );
               }
             },
-            child: IconButton(
-              icon: Icon(
-                _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-              ),
-              onPressed: _toggleBookmark,
-            ),
+            child: const SizedBox.shrink(),
           ),
           IconButton(
             icon: const Icon(Icons.share),
@@ -134,20 +142,19 @@ class _ArticleDetailsState extends State<ArticleDetails> {
                   const SizedBox(height: 8),
                   Text(
                     'By ${widget.article.author ?? "Unknown Author"}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: Colors.grey[600]),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 4),
                   if (widget.article.publishedAt != null)
                     Text(
-                      DateFormat('MMM dd, yyyy - HH:mm')
-                          .format(widget.article.publishedAt!),
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.grey[600]),
+                      DateFormat(
+                        'MMM dd, yyyy - HH:mm',
+                      ).format(widget.article.publishedAt!),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                     ),
                   const SizedBox(height: 16),
                   Text(
