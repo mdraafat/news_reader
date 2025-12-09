@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../readaloud/readaloud_constants.dart';
+import '../../../readaloud/readaloud_plugin.dart';
 import '../../domain/article.dart';
 import '../bloc/article_bloc.dart';
 import '../bloc/article_event.dart';
@@ -18,9 +20,80 @@ class ArticleDetails extends StatefulWidget {
 }
 
 class _ArticleDetailsState extends State<ArticleDetails> {
+  bool _isReading = false;
+
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    ReadAloud.stop();
+    super.dispose();
+  }
+
+  bool _isEnglishArticle() {
+    final language = widget.article.language?.toLowerCase();
+    return language == null || language.isEmpty || language == 'en';
+  }
+
+  Future<void> _toggleReadAloud() async {
+    if (_isReading) {
+      // Stop reading
+      await ReadAloud.stop();
+      setState(() {
+        _isReading = false;
+      });
+    } else {
+      // Start reading
+      final description = widget.article.description;
+
+      if (description != null && description.isNotEmpty) {
+        final success = await ReadAloud.speak(text: description);
+
+        if (success) {
+          setState(() {
+            _isReading = true;
+          });
+
+          // Check periodically if still speaking
+          _checkSpeakingStatus();
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(ReadAloudConstants.snackbarFailedStart),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(ReadAloudConstants.snackbarNoDescription),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _checkSpeakingStatus() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) {
+      final isSpeaking = await ReadAloud.isSpeaking();
+      if (!isSpeaking && _isReading) {
+        setState(() {
+          _isReading = false;
+        });
+      } else if (isSpeaking && _isReading) {
+        _checkSpeakingStatus();
+      }
+    }
   }
 
   @override
@@ -28,15 +101,23 @@ class _ArticleDetailsState extends State<ArticleDetails> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Article Details'),
-
         actions: [
+          // Only show Read Aloud button for English articles
+          if (_isEnglishArticle())
+            IconButton(
+              icon: Icon(
+                _isReading ? Icons.stop : Icons.volume_up,
+              ),
+              onPressed: _toggleReadAloud,
+              tooltip: _isReading ? ReadAloudConstants.tooltipStop : ReadAloudConstants.tooltipRead,
+            ),
           BlocBuilder<ArticleBloc, ArticleState>(
             buildWhen: (previous, current) {
               final prevBookmarked = previous is ArticleLoaded
                   ? previous.isBookmarked
                   : (previous is BookmarkToggled
-                        ? previous.isBookmarked
-                        : false);
+                  ? previous.isBookmarked
+                  : false);
 
               final currBookmarked = current is ArticleLoaded
                   ? current.isBookmarked
@@ -67,7 +148,6 @@ class _ArticleDetailsState extends State<ArticleDetails> {
               );
             },
           ),
-
           BlocListener<ArticleBloc, ArticleState>(
             listenWhen: (previous, current) {
               return current is ArticleLoaded || current is BookmarkToggled;

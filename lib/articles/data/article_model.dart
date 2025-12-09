@@ -8,6 +8,7 @@ class ArticleModel extends Article {
     super.imageUrl,
     super.publishedAt,
     super.author,
+    super.language,
   });
 
   factory ArticleModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +21,7 @@ class ArticleModel extends Article {
           ? DateTime.parse(json['publishedAt'] as String)
           : null,
       author: json['author'] as String?,
+      language: json['language'] as String?,
     );
   }
 
@@ -31,6 +33,7 @@ class ArticleModel extends Article {
       'urlToImage': imageUrl,
       'publishedAt': publishedAt?.toIso8601String(),
       'author': author,
+      'language': language,
     };
   }
 
@@ -42,6 +45,7 @@ class ArticleModel extends Article {
       imageUrl: article.imageUrl,
       publishedAt: article.publishedAt,
       author: article.author,
+      language: article.language,
     );
   }
 }
