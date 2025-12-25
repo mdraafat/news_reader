@@ -46,7 +46,7 @@ class ReadAloudPlugin : FlutterPlugin, MethodCallHandler {
         }
     }
 
-    override fun onMethodCall(call: MethodCall, result: Result) {
+    override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             ReadAloudConstants.METHOD_SPEAK -> {
                 val text = call.argument<String>(ReadAloudConstants.PARAM_TEXT)
@@ -77,7 +77,7 @@ class ReadAloudPlugin : FlutterPlugin, MethodCallHandler {
         }
     }
 
-    private fun speak(text: String, result: Result) {
+    private fun speak(text: String, result: MethodChannel.Result) {
         if (!isTtsInitialized) {
             result.error(
                 ReadAloudConstants.ERROR_TTS_NOT_INITIALIZED,
@@ -109,7 +109,7 @@ class ReadAloudPlugin : FlutterPlugin, MethodCallHandler {
         }
     }
 
-    private fun stop(result: Result) {
+    private fun stop(result: MethodChannel.Result) {
         try {
             val stopResult = textToSpeech?.stop()
             isSpeaking = false
@@ -119,7 +119,7 @@ class ReadAloudPlugin : FlutterPlugin, MethodCallHandler {
         }
     }
 
-    private fun dispose(result: Result) {
+    private fun dispose(result: MethodChannel.Result) {
         try {
             textToSpeech?.stop()
             textToSpeech?.shutdown()
